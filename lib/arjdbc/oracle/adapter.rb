@@ -179,9 +179,12 @@ module ::ArJdbc
         sequence_name ||= default_sequence_name(table)
         id_value = next_sequence_value(sequence_name)
 		
+		sql.columns << columns(table).detect{ |col| col.name == pk } unless sql.columns.detect{ |col| col.name == pk }
 		binds = sql.columns.map { |col| col.name == pk ? [col, id_value] : binds.detect{ |bind| bind.first.name == col.name } }
-        log(sql.to_sql, name) do
-		  execute sql, name, binds
+		# HACK it up
+		sql_str = "INSERT INTO #{table} (#{binds.map{ |bind| bind.first.name }.join(', ')}) VALUES(#{binds.size.times.map{'?'}.join(', ')})"
+        log(sql_str, name) do
+		  execute sql_str, name, binds
         end
       end
       id_value
